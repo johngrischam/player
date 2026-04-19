@@ -37,7 +37,7 @@ function sendAnswer(ans, pageId) {
 
     getUserIP(function(ip){
       sendPollWithIP(ans, pageId, ip);
-      container.innerHTML = "✅ Fantastico! Ti svelerò un segreto: Scarica <b>Android App</b> per Firestick e TV box.";
+      container.innerHTML = "✅ Fantastico! Ti svelerò un segreto: Invia un'email a KriTere con oggetto: <b>VIP</b>";
     });
   }
 }
