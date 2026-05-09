@@ -37,7 +37,7 @@ function sendAnswer(ans, pageId) {
 
     getUserIP(function(ip){
       sendPollWithIP(ans, pageId, ip);
-      container.innerHTML = "✅ Fantastico! Ti svelerò un segreto: Invia un'email a KriTere con oggetto: <b>VIP</b>";
+      container.innerHTML = "✅ Fantastico! Ora invia un'email a info@kritere.com riguardo a: <b>Premium</b>";
     });
   }
 }
