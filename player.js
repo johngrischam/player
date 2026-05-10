@@ -553,20 +553,25 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
                 liveSyncMinLatency: 2
             }
         });
-        window.shakaPlayer.load(videoSrc).then(function() {
-            hideSpinner();
-            video.muted = false;
-            video.volume = 1.0;
-            showFullscreenPopup(playerContainer);
-        }).catch(function(err) {
-            console.error('Shaka ClearKey HLS failed:', err);
-            hideSpinner();
-            if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = videoSrc;
-                video.muted = true;
-                video.addEventListener('canplaythrough', function() { video.play().catch(function(){}); hideSpinner(); }, {once:true});
-            }
-        });
+        setTimeout(function() {
+            window.shakaPlayer.load(videoSrc).then(function() {
+                hideSpinner();
+                video.muted = false;
+                video.volume = 1.0;
+                showFullscreenPopup(playerContainer);
+            }).catch(function(err) {
+                console.error('Shaka ClearKey HLS failed:', err);
+                hideSpinner();
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = videoSrc;
+                    video.muted = true;
+                    video.addEventListener('canplaythrough', function() { 
+                        video.play().catch(function(){}); 
+                        hideSpinner(); 
+                    }, {once:true});
+                }
+            });
+        }, 500);
 
         video.addEventListener('play', function(){
             hideSpinner();
