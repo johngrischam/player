@@ -9,11 +9,11 @@ window.useClapprPlayer = true;
 function isTV() {
     const ua = navigator.userAgent.toLowerCase();
     if (/tv|smart-tv|tizen|webos|android.*tv|firetv|rokutv|appletv|vidda|hisense|panasonic|vizio|playstation|xbox/i.test(ua)) {
-    return true;
-}
+        return true;
+    }
     return !('ontouchstart' in window) && 
            window.screen.width >= 1920 && 
-      window.screen.height - window.innerHeight < 100 &&
+           window.screen.height - window.innerHeight < 100 &&
            !/ipad|tablet|android(?!.*tv)|macintosh|windows/i.test(ua);
 }
 
@@ -31,6 +31,82 @@ function hexToUint8Array(hex) {
         bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
     }
     return bytes;
+}
+
+// ================================
+// NEW SMART DETECTOR FOR SPECIAL CLEARKEY LINKS
+// ================================
+function extractZapprClearkeyData(rawUrl) {
+    try {
+        if (!rawUrl || !rawUrl.includes('/clearkey/')) return null;
+
+        let cleanUrl = rawUrl.replace(/&amp;/g, '&');
+        let urlObj = new URL(cleanUrl);
+        let encodedStream = urlObj.searchParams.get("url");
+        let encodedKeys = urlObj.searchParams.get("keys");
+
+        if (!encodedStream || !encodedKeys) return null;
+
+        let decodedKeys = decodeURIComponent(encodedKeys);
+        if (decodedKeys.includes('%')) {
+            decodedKeys = decodeURIComponent(decodedKeys);
+        }
+
+        return {
+            video: decodeURIComponent(encodedStream),
+            keys: JSON.parse(decodedKeys)
+        };
+    } catch (e) {
+        return null;
+    }
+}
+  
+  function forceReleaseDRM() {
+    try {
+        var altVid = document.getElementById('alternate-video-player');
+        if (window.shakaPlayer && typeof window.shakaPlayer.detach === 'function') {
+            window.shakaPlayer.detach(); 
+        }
+        if (altVid) {
+            altVid.pause();
+            altVid.src = "";
+            altVid.load();
+            if (typeof altVid.setMediaKeys === 'function') {
+                altVid.setMediaKeys(null).catch(function(){});
+            }
+        }
+    } catch (e) {
+        console.log("Safety cleanup skipped");
+    }
+}
+
+// ================================
+// Zappr ClearKey URL Parser
+// Handles: https://zappr.stream/clearkey/?url=...&keys=...
+// Returns: { videoSrc, clearKeys } or null if not a clearkey URL
+// ================================
+function parseClearKeyUrl(href) {
+    try {
+        var parsed = new URL(href);
+        if (!parsed.pathname.includes('/clearkey')) return null;
+        var innerUrl = parsed.searchParams.get('url');
+        if (!innerUrl) return null;
+
+        var keysRaw = parsed.searchParams.get('keys');
+        var clearKeys = null;
+        if (keysRaw) {
+            try {
+                var decoded = decodeURIComponent(keysRaw);
+                clearKeys = JSON.parse(decoded);
+            } catch(e) {
+                console.warn('ClearKey keys parse failed:', e);
+            }
+        }
+
+        return { videoSrc: innerUrl, clearKeys: clearKeys };
+    } catch(e) {
+        return null;
+    }
 }
 
 // ================================
@@ -67,7 +143,6 @@ function showSpinner(container) {
     spinner.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border:5px solid #f3f3f3;border-top:5px solid #3498db;border-radius:50%;animation:spin 1s linear infinite;z-index:10;';
     container.appendChild(spinner);
     
-    // Safety timeout: remove spinner after 15s if no events fire
     setTimeout(() => {
         if (document.getElementById('loading-spinner')) {
             hideSpinner();
@@ -86,7 +161,6 @@ function hideSpinner() {
 function cleanupPlayerInstances() {
     var playerContainer = document.getElementById('player');
     var alternateVideo = document.getElementById('alternate-video-player');
-
     if (window.clapprPlayer) {
         try {
             window.clapprPlayer.destroy();
@@ -139,7 +213,7 @@ function cleanupPlayerInstances() {
     var popup = document.getElementById('fullscreen-popup');
     if(popup) popup.remove();
     
-    hideSpinner(); // Ensure spinner is removed during cleanup
+    hideSpinner();
 }
 
 // ================================
@@ -164,14 +238,11 @@ var preloader = document.getElementById('preloader');
 var counter = document.getElementById('count');
 var count = 1;
 var timer;
-
-// === Start counter immediately if preloader exists ===
 if (preloader && counter) {
   var max = 100;
   var duration = 4000;
   var step = duration / max;
   counter.textContent = count;
-
   timer = setInterval(function() {
     count++;
     if (count >= max) {
@@ -183,23 +254,23 @@ if (preloader && counter) {
 }
 
 window.addEventListener('load', function() {
-  // === Fade-out preloader ===
+  if (window.shaka) {
+        shaka.polyfill.installAll();
+    }
   if (preloader) {
     preloader.style.transition = 'opacity 0.5s ease-out';
     preloader.style.opacity = '0';
     preloader.addEventListener('transitionend', function() {
       preloader.style.display = 'none';
-      if (timer) clearInterval(timer); // stop counting
+      if (timer) clearInterval(timer);
     }, {once: true});
   }
   
-
     if (!checkDependency('Clappr', window.Clappr)) {
         tryDefaultHlsFallback();
         return;
     }
 
-    // hard-coded default video to ensure player shows even if link list is not yet available
     var videoSrc = "https://d27wu3gni4gipu.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-7i6bsjw4lfg88/ABCD/Rai/RaiNews24_IT/rainews1/playlist.m3u8";
     var playerContainer = document.getElementById('player');
     try {
@@ -211,7 +282,7 @@ window.addEventListener('load', function() {
             height: "100%",
             width: "100%",
             plugins: getClapprPlugins(),
-            playback: videoSrc.indexOf('.mpd') > -1 ? 
+            playback: videoSrc.indexOf('.mpd') > -1 ?
                 window.Clappr.DashShakaPlayback : 
                 {
                     hlsjsConfig: {
@@ -231,11 +302,9 @@ window.addEventListener('load', function() {
 
 function tryDefaultHlsFallback() {
     var defaultLink = document.querySelector('#link-list a[href="https://d27wu3gni4gipu.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-7i6bsjw4lfg88/ABCD/Rai/RaiNews24_IT/rainews1/playlist.m3u8"]');
-    
     if (defaultLink && checkDependency('Hls', window.Hls) && window.Hls.isSupported()) {
         var playerContainer = document.getElementById('player');
         showSpinner(playerContainer);
-
         var video = document.createElement('video');
         video.id = 'alternate-video-player';
         video.autoplay = false;
@@ -243,7 +312,6 @@ function tryDefaultHlsFallback() {
         video.controls = true;
         video.style.cssText = 'width:100%;height:100%;';
         playerContainer.appendChild(video);
-        
         var hls = new window.Hls();
         hls.loadSource(defaultLink.href);
         video.muted = true;
@@ -259,7 +327,6 @@ function tryDefaultHlsFallback() {
                 return;
             } else {
                 console.warn('Default HLS failed — trying native playback.');
-            console.warn('Default HLS failed — trying native playback.');
                 if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = defaultLink.href;
                     video.muted = true;
@@ -275,16 +342,14 @@ function tryDefaultHlsFallback() {
                 }
             }
         });
-
     } else if (defaultLink) {
         var playerContainer = document.getElementById('player');
         showSpinner(playerContainer);
-
         var video = document.createElement('video');
         if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.id = 'alternate-video-player';
             video.autoplay = false;
-            video.muted = true; // ✅ set before playback
+            video.muted = true;
             video.controls = true;
             video.style.cssText = 'width:100%;height:100%;';
             playerContainer.appendChild(video);
@@ -309,7 +374,6 @@ function tryDefaultHlsFallback() {
 function showFullscreenPopup(container){
     var existing = document.getElementById('fullscreen-popup');
     if(existing) existing.remove();
-
     var overlay = document.createElement('div');
     overlay.id = 'fullscreen-popup';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);display:flex;justify-content:center;align-items:center;z-index:9999999;';
@@ -332,18 +396,15 @@ function showFullscreenPopup(container){
     box.appendChild(yesBtn);
     box.appendChild(noBtn);
 
-    // --- Add some extra space before ad
     var spacer = document.createElement('div');
     spacer.style.cssText = 'height:25px;';
     box.appendChild(spacer);
 
-    // --- Ad label
     var adLabel = document.createElement('div');
     adLabel.textContent = 'advertising';
     adLabel.style.cssText = 'font-size:11px;color:#666;margin-bottom:4px;';
     box.appendChild(adLabel);
 
-    // --- AdSense container
     var adContainer = document.createElement('ins');
     adContainer.className = 'adsbygoogle';
     adContainer.style.display = 'block';
@@ -354,12 +415,11 @@ function showFullscreenPopup(container){
     adContainer.setAttribute('data-ad-slot', '8696086432');
     adContainer.setAttribute('data-full-width-responsive', 'false');
     box.appendChild(adContainer);
-
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    // Load ad safely
-    try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
+    try { (adsbygoogle = window.adsbygoogle || []).push({});
+    } catch(e) {}
 
     var escapeHandler = function(e) {
         if (e.key === 'Escape') {
@@ -368,7 +428,6 @@ function showFullscreenPopup(container){
         }
     };
     document.addEventListener('keydown', escapeHandler, {once: true});
-
     yesBtn.addEventListener('click', function(){
         document.removeEventListener('keydown', escapeHandler);
         try {
@@ -397,7 +456,6 @@ function showFullscreenPopup(container){
                 position:'fixed', top:'0', left:'0', width:'100vw', height:'100vh',
                 backgroundColor:'black', zIndex:'999999'
             });
-            
             if(window.clapprPlayer || document.getElementById('alternate-video-player')){
                 var closeBtn = document.createElement('button');
                 closeBtn.id = 'clappr-close-btn';
@@ -409,7 +467,6 @@ function showFullscreenPopup(container){
         }
         overlay.remove();
     });
-
     noBtn.addEventListener('click', function(){ 
         document.removeEventListener('keydown', escapeHandler);
         overlay.remove(); 
@@ -424,7 +481,7 @@ function exitFullscreenAndStop() {
     var playerContainer = document.getElementById('player');
     
     playerContainer.removeAttribute('style');
-    playerContainer.style.height = ''; 
+    playerContainer.style.height = '';
     playerContainer.style.width = '';
     
     cleanupPlayerInstances();
@@ -440,7 +497,6 @@ function tryFallback(videoSrc, audioSrc, keyId, keyValue, attemptType = 'primary
     fallbackAttempts[key] = (fallbackAttempts[key] || 0) + 1;
     
     cleanupPlayerInstances();
-    
     if (attemptType === 'shaka') {
         window.useClapprPlayer = true;
         window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
@@ -460,15 +516,68 @@ function tryFallback(videoSrc, audioSrc, keyId, keyValue, attemptType = 'primary
 // ================================
 // Alternate Player Loading
 // ================================
-function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
+function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
     var playerContainer = document.getElementById('player');
     var isMPD = videoSrc.indexOf('.mpd') > -1;
     var isM3U8 = videoSrc.indexOf('.m3u8') > -1;
+    var effectiveClearKeys = clearKeys || null;
+    if (!effectiveClearKeys && keyId && keyValue) {
+        effectiveClearKeys = { [keyId]: keyValue };
+    }
 
-    if (!isMPD && !isM3U8) return;
+    if (effectiveClearKeys && isM3U8) {
+        if (!checkDependency('shaka', window.shaka)) {
+            hideSpinner();
+            loadAlternatePlayer(videoSrc, audioSrc, null, null, null);
+            return;
+        }
+        showSpinner(playerContainer);
+        var video = document.createElement('video');
+        video.id = 'alternate-video-player';
+        video.autoplay = true;
+        video.muted = true;
+        video.controls = true;
+        video.style.cssText = 'width:100%;height:100%;';
+        playerContainer.appendChild(video);
+
+        shaka.polyfill.installAll();
+        window.shakaPlayer = new shaka.Player(video);
+        window.shakaPlayer.configure({
+            drm: { clearKeys: effectiveClearKeys },
+            streaming: {
+                rebufferingGoal: 1.5,
+                bufferingGoal: 10,
+                bufferBehind: 30,
+                liveSync: true,
+                liveSyncMaxLatency: 4,
+                liveSyncMinLatency: 2
+            }
+        });
+        window.shakaPlayer.load(videoSrc).then(function() {
+            hideSpinner();
+            video.muted = false;
+            video.volume = 1.0;
+            showFullscreenPopup(playerContainer);
+        }).catch(function(err) {
+            console.error('Shaka ClearKey HLS failed:', err);
+            hideSpinner();
+            if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = videoSrc;
+                video.muted = true;
+                video.addEventListener('canplaythrough', function() { video.play().catch(function(){}); hideSpinner(); }, {once:true});
+            }
+        });
+
+        video.addEventListener('play', function(){
+            hideSpinner();
+            showFullscreenPopup(playerContainer);
+        }, {once: true});
+        return;
+    }
+
+    if (!isMPD && !isM3U8) { hideSpinner(); return; }
 
     showSpinner(playerContainer);
-
     var video = document.createElement('video');
     video.id = 'alternate-video-player';
     video.autoplay = true;
@@ -476,7 +585,6 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
     video.controls = true;
     video.style.cssText = 'width:100%;height:100%;';
     playerContainer.appendChild(video);
-
     if (isMPD) {
         if (!checkDependency('shaka', window.shaka)) {
             hideSpinner();
@@ -485,7 +593,6 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
         }
         
         window.shakaPlayer = new shaka.Player(video);
-        
         window.shakaPlayer.configure({
             streaming: {
                 rebufferingGoal: 1.5,
@@ -496,10 +603,9 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
                 liveSyncMinLatency: 2
             }
         });
-
-        if (keyId && keyValue) {
+        if (effectiveClearKeys) {
             window.shakaPlayer.configure({
-                drm: { clearKeys: { [keyId]: keyValue } }
+                drm: { clearKeys: effectiveClearKeys }
             });
         }
 
@@ -510,7 +616,6 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
             hideSpinner();
             tryFallback(videoSrc, audioSrc, keyId, keyValue, 'shaka');
         });
-        
     } else if (isM3U8) {
         if (!checkDependency('Hls', window.Hls)) {
             hideSpinner();
@@ -528,14 +633,12 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
         }
         hideSpinner();
     });
-           window.hlsPlayer.on(window.Hls.Events.ERROR, function() {
+        window.hlsPlayer.on(window.Hls.Events.ERROR, function() {
                 hideSpinner();
-                // If the user explicitly selected HLS, do NOT switch back to Clappr automatically.
                 if (window.userSelectedHls) {
                     console.warn('HLS error ignored (user forced HLS mode). Staying on HLS.');
                     return;
                 } else {
-                    // HLS was used because Clappr failed → go native as last resort
                     console.warn('HLS failed after Clappr fallback — trying native playback.');
                     if (video.canPlayType('application/vnd.apple.mpegurl')) {
                         video.src = videoSrc;
@@ -552,7 +655,6 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
                     }
                 }
             });
-
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = videoSrc;
             video.muted = true; 
@@ -575,11 +677,9 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
         hideSpinner();
         showFullscreenPopup(playerContainer);
     }, {once: true});
-
     var audio = document.getElementById('audio-player');
     if(audioSrc && audio){
         audio.style.display = 'block';
-
         if (!checkDependency('Hls', window.Hls)) {
             console.warn('HLS library missing. External audio playback may not work.');
         } else if(window.Hls.isSupported()){
@@ -608,7 +708,6 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
                 else audio.playbackRate = 1.0;
             }
         },1000);
-        
         document.addEventListener('visibilitychange',function(){
             if(!document.hidden){
                 audio.currentTime = video.currentTime;
@@ -621,12 +720,20 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue){
 // ================================
 // Global resumeClapprLoad function
 // ================================
-window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue) {
+window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     var playerContainer = document.getElementById('player');
-
     cleanupPlayerInstances();
 
     showSpinner(playerContainer);
+
+    if (clearKeys && Object.keys(clearKeys).length > 0) {
+        var isM3U8ck = videoSrc.indexOf('.m3u8') > -1;
+        var isMPDck  = videoSrc.indexOf('.mpd')  > -1;
+        if (isM3U8ck || isMPDck) {
+            loadAlternatePlayer(videoSrc, audioSrc, null, null, clearKeys);
+            return;
+        }
+    }
 
     if (window.useClapprPlayer) {
     window.userSelectedHls = false;
@@ -638,8 +745,7 @@ window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue) {
         }
 
         var audio = document.getElementById('audio-player');
-        var isMPD = videoSrc.indexOf('.mpd') > -1; 
-        
+        var isMPD = videoSrc.indexOf('.mpd') > -1;
         if(audio){
             audio.style.display = audioSrc ? 'block' : 'none';
             if(audioSrc){
@@ -687,7 +793,6 @@ window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue) {
     
         try {
             window.clapprPlayer = new window.Clappr.Player(playerOpts);
-            
             window.clapprPlayer.once(window.Clappr.Events.PLAYER_PLAY, function(){
                 hideSpinner();
                 try {
@@ -698,7 +803,6 @@ window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue) {
                     showFullscreenPopup(playerContainer);
                 }
             });
-            
             window.clapprPlayer.on(window.Clappr.Events.ERROR, hideSpinner);
         } catch(e) {
             hideSpinner();
@@ -789,7 +893,8 @@ for(var i=0;i<allBtns.length;i++){
         var oldIframe = playerContainer.querySelector('iframe');
         if(oldIframe) oldIframe.remove();
 
-        cleanupPlayerInstances(); 
+        cleanupPlayerInstances();
+        forceReleaseDRM();
 
         // Always start new streams in Opzione 1 (Clappr)
         window.useClapprPlayer = true;          // primary
@@ -797,10 +902,24 @@ for(var i=0;i<allBtns.length;i++){
         var switchBtn = document.getElementById('switch-player-btn');
         if (switchBtn) switchBtn.textContent = 'Opzione 2'; // reflect UI state
 
-        var audioSrc = this.getAttribute('data-audio') || null;
-        var videoSrc = this.getAttribute('data-video') || this.href;
-        var keyId = this.getAttribute('data-key-id');
-        var keyValue = this.getAttribute('data-key-value');
+        // --- START OF NEW SMART DETECTOR ---
+        var rawVideoSrc = this.getAttribute('data-video') || this.href;
+        var clearkeyData = extractZapprClearkeyData(rawVideoSrc);
+
+        var videoSrc, audioSrc, keyId, keyValue;
+
+        if (clearkeyData) {
+            videoSrc = clearkeyData.video;
+            keyValue = clearkeyData.keys; 
+            keyId = null;
+            audioSrc = null;
+        } else {
+            audioSrc = this.getAttribute('data-audio') || null;
+            videoSrc = rawVideoSrc;
+            keyId = this.getAttribute('data-key-id');
+            keyValue = this.getAttribute('data-key-value');
+        }
+        // --- END OF NEW SMART DETECTOR ---
         
         if (!videoSrc) {
             console.error('No video source found for link');
@@ -820,7 +939,6 @@ for(var i=0;i<allBtns.length;i++){
             iframe.style.width = '100%';
             iframe.style.border = 'none';
             iframe.setAttribute('allowfullscreen','');
-            
             if (isTV()) {
                 iframe.style.height = '480px';
                 iframe.style.transform = 'scale(1.5)';
@@ -836,8 +954,7 @@ for(var i=0;i<allBtns.length;i++){
 
         var isM3U8 = videoSrc.indexOf('.m3u8') > -1;
         var isMPD = videoSrc.indexOf('.mpd') > -1;
-        var isWebpage = !isM3U8 && !isMPD && !audioSrc;
-        
+        var isWebpage = !isM3U8 && !isMPD && !audioSrc && !clearkeyData;
         if(isWebpage){
             var audio = document.getElementById('audio-player');
             audio.style.display='none';
@@ -846,7 +963,6 @@ for(var i=0;i<allBtns.length;i++){
             iframe.style.width = '100%';
             iframe.style.border = 'none';
             iframe.setAttribute('allowfullscreen','');
-            
             if (isTV()) {
                 iframe.style.height = '480px';
                 iframe.style.transform = 'scale(1.5)';
@@ -860,25 +976,25 @@ for(var i=0;i<allBtns.length;i++){
             return;
         }
         
-        // =========================================================
-        // RULE 1: Silent DRM MPD Bypass (No choice, always Web Player)
-        // =========================================================
         if (isMPD && keyId && this.classList.contains('stream-link')) {
             window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
             return;
         }
-        // =========================================================
 
-        // Mobile detection: show popup on Android/iOS/TV; otherwise play in web
         var ua = navigator.userAgent.toLowerCase();
         var isMobile = /android|iphone|ipad|ipod/.test(ua);
-        
-        // Show popup if it's Mobile OR if the isTV() function detects a TV/Box
         if (isMobile || isTV()) { 
-            showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue); 
+            if (clearkeyData) {
+                showPlayChoicePopup(videoSrc, audioSrc, null, null, keyValue);
+            } else {
+                showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue);
+            }
         } else {
-            // All other desktops/devices: load Web Player directly
-            window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
+            if (clearkeyData) {
+                window.resumeClapprLoad(videoSrc, audioSrc, null, null, keyValue);
+            } else {
+                window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
+            }
         }
     });
 }
@@ -888,7 +1004,6 @@ for(var i=0;i<allBtns.length;i++){
 // ================================
 window.streamLinks = [];
 window.currentStreamIndex = -1;
-
 function getNextStreamLink(currentVideoSrc) {
     initializeStreamLinks(currentVideoSrc);
     if (window.streamLinks.length === 0) return null;
@@ -917,7 +1032,8 @@ function initializeStreamLinks(currentVideoSrc) {
         var linkAudioSrc = btn.getAttribute('data-audio') || null;
         var isM3U8 = linkVideoSrc.indexOf('.m3u8') > -1;
         var isMPD = linkVideoSrc.indexOf('.mpd') > -1;
-        var isWebpage = !isM3U8 && !isMPD && !linkAudioSrc;
+        var isClearKey = extractZapprClearkeyData(linkVideoSrc) !== null;
+        var isWebpage = !isM3U8 && !isMPD && !linkAudioSrc && !isClearKey;
         if (!isWebpage){
             var linkData = { 
                 video: linkVideoSrc, 
@@ -942,7 +1058,12 @@ window.playNextStream = function(currentVideoSrc) {
     var nextStream = window.streamLinks[nextIndex];
     if (nextStream) {
         window.currentStreamIndex = nextIndex;
-        window.resumeClapprLoad(nextStream.video, nextStream.audio, nextStream.keyId, nextStream.keyValue);
+        var ck = extractZapprClearkeyData(nextStream.video);
+        if (ck) {
+            window.resumeClapprLoad(ck.video, nextStream.audio, null, null, ck.keys);
+        } else {
+            window.resumeClapprLoad(nextStream.video, nextStream.audio, nextStream.keyId, nextStream.keyValue);
+        }
     }
 };
 
@@ -955,14 +1076,19 @@ window.playPreviousStream = function(currentVideoSrc) {
     var previousStream = window.streamLinks[previousIndex];
     if (previousStream) {
         window.currentStreamIndex = previousIndex;
-        window.resumeClapprLoad(previousStream.video, previousStream.audio, previousStream.keyId, previousStream.keyValue);
+        var ck = extractZapprClearkeyData(previousStream.video);
+        if (ck) {
+            window.resumeClapprLoad(ck.video, previousStream.audio, null, null, ck.keys);
+        } else {
+            window.resumeClapprLoad(previousStream.video, previousStream.audio, previousStream.keyId, previousStream.keyValue);
+        }
     }
 };
 
 // ================================
 // NEW: Popup for choosing Web/Native on Mobile (Blogger-safe Ad)
 // ================================
-function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue) {
+function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     var ua = navigator.userAgent.toLowerCase();
     var isAndroid = /android/.test(ua);
     var isIOS = /iphone|ipad|ipod/.test(ua);
@@ -982,7 +1108,6 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue) {
     infoLine.textContent = 'In "Native" scegli il tuo proprio Player';
     infoLine.style.cssText = 'font-size:12px;color:#444;margin-bottom:12px;';
     box.appendChild(infoLine);
-
     var btnRow = document.createElement('div');
     btnRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:28px;';
     
@@ -991,10 +1116,9 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue) {
     webBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#007bff;color:white;font-size:14px;cursor:pointer;';
     webBtn.onclick = function() {
         document.body.removeChild(overlay);
-        window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
+        window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, clearKeys);
     };
     btnRow.appendChild(webBtn);
-
     if (isAndroid) {
         var nativeBtn = document.createElement('button');
         nativeBtn.textContent = 'Native Player';
@@ -1026,14 +1150,10 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue) {
     }
 
     box.appendChild(btnRow);
-
-    // Ad label
     var adLabel = document.createElement('div');
     adLabel.textContent = 'advertising';
     adLabel.style.cssText = 'font-size:11px;color:#666;margin-bottom:4px;';
     box.appendChild(adLabel);
-
-    // AdSense container
     var adContainer = document.createElement('ins');
     adContainer.className = 'adsbygoogle';
     adContainer.style.display = 'block';
@@ -1047,8 +1167,6 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue) {
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
-
-    // Safely trigger ad load
     try {
         (adsbygoogle = window.adsbygoogle || []).push({});
     } catch (e) {
