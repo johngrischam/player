@@ -37,7 +37,7 @@ function sendAnswer(ans, pageId) {
 
     getUserIP(function(ip){
       sendPollWithIP(ans, pageId, ip);
-      container.innerHTML = "✅ Fantastico! Ora invia un'email a info@kritere.com riguardo a: <b>Premium</b>";
+      container.innerHTML = "✅ Fantastico! Prova anche Premium gratis! Zero pubblicità, 500 canali a 5€";
     });
   }
 }
@@ -164,10 +164,11 @@ function sendOtherName(pageId) {
     sendPollWithIP("No - " + value, pageId, ip);
     container.innerHTML =
   "<div>💬 KriTere AI suggerisce:</div>" +
-  "<div><b>-</b>Hai provato <b>Opzione 2</b> su <b>ogni</b> link TV con tag 🟢?</div>" +
-  "<div><b>-</b>Hai usato una <b>VPN</b> sui link TV con tag 🟡?</div>" +
-  "<div><b>-</b>Hai installato <b>KriTere App</b> per guardare <b>Sky e Dazn</b>?</div>" +
-  "<div>Se rispondi “Sì” ma la TV non si apre, <b>commenta a fine pagina</b> per assistenza con: <b>" + value + "</b></div>";
+  "<div>• Prova <b>Opzione 2</b> sui link 🟢</div>" +
+  "<div>• Usa <b>VPN</b> sui link 🟡</div>" +
+  "<div>• Installa <b>KriTere Web App</b> per <b>Sky/Dazn</b></div>" +
+  "<div>Ancora non funziona? Commenta a <b>fine pagina</b> con: <b>" + value + "</b></div>" +
+  "<div style='color:yellow'>Prova Premium <b>gratis</b>. 500 canali a 5€! NO pubblicità.</div>";
   });
 }
 
@@ -180,10 +181,11 @@ function sendNameChoice(name, pageId) {
     sendPollWithIP("No - " + name, pageId, ip);
     container.innerHTML = 
   "<div>💬 KriTere AI suggerisce:</div>" +
-  "<div><b>-</b>Hai provato <b>Opzione 2</b> su <b>ogni</b> link TV con tag 🟢?</div>" +
-  "<div><b>-</b>Hai usato una <b>VPN</b> sui link TV con tag 🟡?</div>" +
-  "<div><b>-</b>Hai installato <b>KriTere App</b> per guardare <b>Sky e Dazn</b>?</div>" +
-  "<div>Se rispondi “Sì” ma la TV non si apre, <b>commenta a fine pagina</b> per assistenza con: <b>" + name + "</b></div>";
+  "<div>• Prova <b>Opzione 2</b> sui link 🟢</div>" +
+  "<div>• Usa <b>VPN</b> sui link 🟡</div>" +
+  "<div>• Installa <b>KriTere Web App</b> per <b>Sky/Dazn</b></div>" +
+  "<div>Ancora non funziona? Commenta a <b>fine pagina</b> con: <b>" + value + "</b></div>" +
+  "<div style='color:yellow'>Prova Premium <b>gratis</b>. 500 canali a 5€! NO pubblicità.</div>";
   });
 }
 
