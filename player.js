@@ -39,29 +39,49 @@ function hexToUint8Array(hex) {
 function extractZapprClearkeyData(rawUrl) {
     try {
         if (!rawUrl || !rawUrl.includes('/clearkey/')) return null;
-
         let cleanUrl = rawUrl.replace(/&amp;/g, '&');
         let urlObj = new URL(cleanUrl);
         let encodedStream = urlObj.searchParams.get("url");
+        if (!encodedStream) return null;
+
+        let videoUrl = decodeURIComponent(encodedStream);
+        let clearKeysObj = null;
+
+        // 1. Check for the multi-keys format (&keys=...)
         let encodedKeys = urlObj.searchParams.get("keys");
-
-        if (!encodedStream || !encodedKeys) return null;
-
-        let decodedKeys = decodeURIComponent(encodedKeys);
-        if (decodedKeys.includes('%')) {
-            decodedKeys = decodeURIComponent(decodedKeys);
+        if (encodedKeys) {
+            let decodedKeys = decodeURIComponent(encodedKeys);
+            if (decodedKeys.includes('%')) {
+                decodedKeys = decodeURIComponent(decodedKeys);
+            }
+            clearKeysObj = JSON.parse(decodedKeys);
+        } 
+        // 2. Check for the new single key format (&kid=...&key=...)
+        else {
+            let kid = urlObj.searchParams.get("kid");
+            let key = urlObj.searchParams.get("key");
+            if (kid && key) {
+                clearKeysObj = {};
+                // Normalize keys by removing any dashes if present, matching standard hex format
+                let cleanKid = kid.replace(/-/g, '').toLowerCase();
+                let cleanKey = key.replace(/-/g, '').toLowerCase();
+                clearKeysObj[cleanKid] = cleanKey;
+            }
         }
 
+        if (!clearKeysObj) return null;
+
         return {
-            video: decodeURIComponent(encodedStream),
-            keys: JSON.parse(decodedKeys)
+            video: videoUrl,
+            keys: clearKeysObj
         };
     } catch (e) {
+        console.error('Error parsing clearkey url formats:', e);
         return null;
     }
 }
   
-  function forceReleaseDRM() {
+function forceReleaseDRM() {
     try {
         var altVid = document.getElementById('alternate-video-player');
         if (window.shakaPlayer && typeof window.shakaPlayer.detach === 'function') {
@@ -82,29 +102,41 @@ function extractZapprClearkeyData(rawUrl) {
 
 // ================================
 // Zappr ClearKey URL Parser
-// Handles: https://zappr.stream/clearkey/?url=...&keys=...
+// Handles: Both &keys=... and &kid=...&key=... formats safely!
 // Returns: { videoSrc, clearKeys } or null if not a clearkey URL
 // ================================
 function parseClearKeyUrl(href) {
     try {
-        var parsed = new URL(href);
+        if (!href) return null;
+        // Use our smart extractor to handle both formats cleanly
+        let extracted = extractZapprClearkeyData(href);
+        if (extracted) {
+            return {
+                videoSrc: extracted.video,
+                clearKeys: extracted.keys
+            };
+        }
+
+        // Fallback fallback processing for basic URLs matching pathname check
+        var parsed = new URL(href.replace(/&amp;/g, '&'));
         if (!parsed.pathname.includes('/clearkey')) return null;
         var innerUrl = parsed.searchParams.get('url');
         if (!innerUrl) return null;
 
-        var keysRaw = parsed.searchParams.get('keys');
-        var clearKeys = null;
-        if (keysRaw) {
-            try {
-                var decoded = decodeURIComponent(keysRaw);
-                clearKeys = JSON.parse(decoded);
-            } catch(e) {
-                console.warn('ClearKey keys parse failed:', e);
-            }
+        var keysParam = parsed.searchParams.get('keys');
+        if (!keysParam) return null;
+
+        var decodedKeys = decodeURIComponent(keysParam);
+        if (decodedKeys.includes('%')) {
+            decodedKeys = decodeURIComponent(decodedKeys);
         }
 
-        return { videoSrc: innerUrl, clearKeys: clearKeys };
-    } catch(e) {
+        return {
+            videoSrc: decodeURIComponent(innerUrl),
+            clearKeys: JSON.parse(decodedKeys)
+        };
+    } catch (e) {
+        console.error("Error in parseClearKeyUrl:", e);
         return null;
     }
 }
