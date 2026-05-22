@@ -2,6 +2,7 @@
 // Global Player State (Clappr is the DEFAULT)
 // ================================
 window.useClapprPlayer = true;
+window.visibilityHandler = null;
 
 // ================================
 // TV Detection Function
@@ -101,47 +102,6 @@ function forceReleaseDRM() {
 }
 
 // ================================
-// Zappr ClearKey URL Parser
-// Handles: Both &keys=... and &kid=...&key=... formats safely!
-// Returns: { videoSrc, clearKeys } or null if not a clearkey URL
-// ================================
-function parseClearKeyUrl(href) {
-    try {
-        if (!href) return null;
-        // Use our smart extractor to handle both formats cleanly
-        let extracted = extractZapprClearkeyData(href);
-        if (extracted) {
-            return {
-                videoSrc: extracted.video,
-                clearKeys: extracted.keys
-            };
-        }
-
-        // Fallback fallback processing for basic URLs matching pathname check
-        var parsed = new URL(href.replace(/&amp;/g, '&'));
-        if (!parsed.pathname.includes('/clearkey')) return null;
-        var innerUrl = parsed.searchParams.get('url');
-        if (!innerUrl) return null;
-
-        var keysParam = parsed.searchParams.get('keys');
-        if (!keysParam) return null;
-
-        var decodedKeys = decodeURIComponent(keysParam);
-        if (decodedKeys.includes('%')) {
-            decodedKeys = decodeURIComponent(decodedKeys);
-        }
-
-        return {
-            videoSrc: decodeURIComponent(innerUrl),
-            clearKeys: JSON.parse(decodedKeys)
-        };
-    } catch (e) {
-        console.error("Error in parseClearKeyUrl:", e);
-        return null;
-    }
-}
-
-// ================================
 // Helper function for dependency check
 // ================================
 function checkDependency(name, globalObject) {
@@ -227,6 +187,11 @@ function cleanupPlayerInstances() {
         clearInterval(window.syncInterval);
         window.syncInterval = null;
     }
+
+    if (window.visibilityHandler) {
+        document.removeEventListener('visibilitychange', window.visibilityHandler);
+        window.visibilityHandler = null;
+    }
     
     var closeBtn = document.getElementById('clappr-close-btn');
     if (closeBtn) {
@@ -261,6 +226,29 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// ================================
+// Volume Persistence Helpers
+// ================================
+function getSavedVolume() {
+    try {
+        var saved = localStorage.getItem('playerVolume');
+        var muted = localStorage.getItem('playerMuted');
+        return {
+            volume: saved !== null ? parseFloat(saved) : 1.0,
+            muted: muted === 'true'
+        };
+    } catch(e) {
+        return { volume: 1.0, muted: false };
+    }
+}
+
+function saveVolume(volume, muted) {
+    try {
+        localStorage.setItem('playerVolume', volume);
+        localStorage.setItem('playerMuted', muted ? 'true' : 'false');
+    } catch(e) {}
 }
 
 // ================================
@@ -450,8 +438,8 @@ function showFullscreenPopup(container){
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 
-    try { (adsbygoogle = window.adsbygoogle || []).push({});
-    } catch(e) {}
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({});
+} catch(e) {}
 
     var escapeHandler = function(e) {
         if (e.key === 'Escape') {
@@ -588,9 +576,9 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
         setTimeout(function() {
             window.shakaPlayer.load(videoSrc).then(function() {
                 hideSpinner();
-                video.muted = false;
-                video.volume = 1.0;
-                showFullscreenPopup(playerContainer);
+                var saved = getSavedVolume();
+                video.muted = saved.muted;
+                video.volume = saved.volume;
             }).catch(function(err) {
                 console.error('Shaka ClearKey HLS failed:', err);
                 hideSpinner();
@@ -709,11 +697,12 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
     }
     
     video.addEventListener('play', function(){
-        video.muted = false;
-        video.volume = 1.0;
-        hideSpinner();
-        showFullscreenPopup(playerContainer);
-    }, {once: true});
+    var saved = getSavedVolume();
+    video.muted = saved.muted;
+    video.volume = saved.volume;
+    hideSpinner();
+    showFullscreenPopup(playerContainer);
+}, {once: true});
     var audio = document.getElementById('audio-player');
     if(audioSrc && audio){
         audio.style.display = 'block';
@@ -732,6 +721,7 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
         var syncVolume = function(){
             audio.volume = video.volume;
             audio.muted = video.muted;
+            saveVolume(video.volume, video.muted);
         };
         video.addEventListener('volumechange', syncVolume);
         
@@ -745,13 +735,24 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
                 else audio.playbackRate = 1.0;
             }
         },1000);
-        document.addEventListener('visibilitychange',function(){
+
+        if (window.visibilityHandler) {
+            document.removeEventListener('visibilitychange', window.visibilityHandler);
+        }
+        window.visibilityHandler = function(){
             if(!document.hidden){
                 audio.currentTime = video.currentTime;
-                audio.playbackRate=1.0;
+                audio.playbackRate = 1.0;
             }
-        });
+        };
+        document.addEventListener('visibilitychange', window.visibilityHandler);
     }
+    // Save volume even when there is no external audio track
+if (!audioSrc) {
+    video.addEventListener('volumechange', function() {
+        saveVolume(video.volume, video.muted);
+    });
+}
 }
 
 // ================================
@@ -831,15 +832,20 @@ window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue, clearKey
         try {
             window.clapprPlayer = new window.Clappr.Player(playerOpts);
             window.clapprPlayer.once(window.Clappr.Events.PLAYER_PLAY, function(){
-                hideSpinner();
-                try {
-                    showFullscreenPopup(playerContainer);
-                    window.clapprPlayer.unmute();
-                    window.clapprPlayer.setVolume(100);
-                } catch(e){
-                    showFullscreenPopup(playerContainer);
-                }
-            });
+    hideSpinner();
+    try {
+        var saved = getSavedVolume();
+        if (saved.muted) {
+            window.clapprPlayer.mute();
+        } else {
+            window.clapprPlayer.unmute();
+            window.clapprPlayer.setVolume(saved.volume * 100);
+        }
+        showFullscreenPopup(playerContainer);
+    } catch(e){
+        showFullscreenPopup(playerContainer);
+    }
+});
             window.clapprPlayer.on(window.Clappr.Events.ERROR, hideSpinner);
         } catch(e) {
             hideSpinner();
@@ -849,15 +855,18 @@ window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue, clearKey
         }
         
         if(audioSrc){
-            window.clapprPlayer.on(window.Clappr.Events.PLAYER_VOLUMEUPDATE,function(payload){
-                var volPercent = (typeof payload==='number') ? payload : (payload && typeof payload.volume==='number' ? payload.volume : window.clapprPlayer.getVolume());
-                var vol01 = Math.max(0, Math.min(1, volPercent/100));
-                audio.volume = vol01;
-                audio.muted = volPercent===0;
-            });
-            window.clapprPlayer.on(window.Clappr.Events.PLAYER_MUTE,function(){ 
-                audio.muted = window.clapprPlayer.getVolume()===0; 
-            });
+    window.clapprPlayer.on(window.Clappr.Events.PLAYER_VOLUMEUPDATE, function(payload){
+        var volPercent = (typeof payload==='number') ? payload : (payload && typeof payload.volume==='number' ? payload.volume : window.clapprPlayer.getVolume());
+        var vol01 = Math.max(0, Math.min(1, volPercent/100));
+        audio.volume = vol01;
+        audio.muted = volPercent === 0;
+        saveVolume(vol01, volPercent === 0);
+    });
+    window.clapprPlayer.on(window.Clappr.Events.PLAYER_MUTE, function(){
+        var isMuted = window.clapprPlayer.getVolume() === 0;
+        audio.muted = isMuted;
+        saveVolume(window.clapprPlayer.getVolume() / 100, isMuted);
+    });
             window.syncInterval = setInterval(function(){
                 var videoTime = (window.clapprPlayer.core && window.clapprPlayer.core.getCurrentTime ? window.clapprPlayer.core.getCurrentTime() : null);
                 if(videoTime!==undefined && videoTime!==null && !isNaN(videoTime)){
@@ -868,12 +877,17 @@ window.resumeClapprLoad = function(videoSrc, audioSrc, keyId, keyValue, clearKey
                     else audio.playbackRate = 1.0;
                 }
             },1000);
-            document.addEventListener('visibilitychange',function(){
+
+            if (window.visibilityHandler) {
+                document.removeEventListener('visibilitychange', window.visibilityHandler);
+            }
+            window.visibilityHandler = function(){
                 if(!document.hidden && window.clapprPlayer.core && window.clapprPlayer.core.getCurrentTime){
                     audio.currentTime = window.clapprPlayer.core.getCurrentTime();
-                    audio.playbackRate=1.0;
+                    audio.playbackRate = 1.0;
                 }
-            });
+            };
+            document.addEventListener('visibilitychange', window.visibilityHandler);
         }
     } else {
         loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue);
@@ -958,6 +972,8 @@ if (clearkeyData) {
     clearKeys = null;
 }
 // --- END OF NEW SMART DETECTOR ---
+
+        var isMPD = videoSrc && videoSrc.indexOf('.mpd') > -1;
         
         if (!videoSrc) {
         console.error('No video source found for link');
@@ -1019,14 +1035,16 @@ if (clearkeyData) {
 // ================================
 window.streamLinks = [];
 window.currentStreamIndex = -1;
+
 function getNextStreamLink(currentVideoSrc) {
     initializeStreamLinks(currentVideoSrc);
     if (window.streamLinks.length === 0) return null;
     
     var startIndex = window.currentStreamIndex;
     var nextIndex = (startIndex + 1) % window.streamLinks.length;
-    
-    while (nextIndex !== startIndex) {
+    var attempts = 0;
+
+    while (nextIndex !== startIndex && attempts++ < window.streamLinks.length) {
         var candidate = window.streamLinks[nextIndex];
         if (!currentVideoSrc || candidate.video !== currentVideoSrc) {
             window.currentStreamIndex = nextIndex;
@@ -1040,24 +1058,33 @@ function getNextStreamLink(currentVideoSrc) {
 function initializeStreamLinks(currentVideoSrc) {
     window.streamLinks = [];
     var allLinks = document.querySelectorAll('#link-list a');
-    for(var i=0;i<allLinks.length;i++){
+    for(var i=0; i<allLinks.length; i++){
         var btn = allLinks[i];
         if(["pwa-link", "pwa-link2", "not-pwa-link"].indexOf(btn.id) !== -1) continue;
+        
         var linkVideoSrc = btn.getAttribute('data-video') || btn.href;
         var linkAudioSrc = btn.getAttribute('data-audio') || null;
         var isM3U8 = linkVideoSrc.indexOf('.m3u8') > -1;
         var isMPD = linkVideoSrc.indexOf('.mpd') > -1;
-        var isClearKey = extractZapprClearkeyData(linkVideoSrc) !== null;
+        
+        // Extract multi-key data once right here during initialization
+        var clearKeyData = extractZapprClearkeyData(linkVideoSrc);
+        var isClearKey = clearKeyData !== null;
         var isWebpage = !isM3U8 && !isMPD && !linkAudioSrc && !isClearKey;
+        
         if (!isWebpage){
             var linkData = { 
-                video: linkVideoSrc, 
+                // FIXED: Extracts the actual streaming payload URL if it's a ClearKey wrapper!
+                video: isClearKey ? clearKeyData.video : linkVideoSrc, 
                 audio: linkAudioSrc,
                 keyId: btn.getAttribute('data-key-id'),
-                keyValue: btn.getAttribute('data-key-value')
+                keyValue: btn.getAttribute('data-key-value'),
+                // Store keys directly so next/previous buttons can read them instantly
+                clearKeys: isClearKey ? clearKeyData.keys : null,
+                isClearKey: isClearKey
             };
             window.streamLinks.push(linkData);
-            if (linkVideoSrc === currentVideoSrc) {
+            if (linkVideoSrc === currentVideoSrc || (isClearKey && clearKeyData.video === currentVideoSrc)) {
                 window.currentStreamIndex = window.streamLinks.length - 1;
             }
         }
@@ -1069,13 +1096,14 @@ window.playNextStream = function(currentVideoSrc) {
         initializeStreamLinks(currentVideoSrc);
     }
     if (window.streamLinks.length === 0) return;
+    
     var nextIndex = (window.currentStreamIndex + 1) % window.streamLinks.length;
     var nextStream = window.streamLinks[nextIndex];
     if (nextStream) {
         window.currentStreamIndex = nextIndex;
-        var ck = extractZapprClearkeyData(nextStream.video);
-        if (ck) {
-            window.resumeClapprLoad(ck.video, nextStream.audio, null, null, ck.keys);
+        // Fixed to read the pre-saved keys instantly
+        if (nextStream.isClearKey && nextStream.clearKeys) {
+            window.resumeClapprLoad(nextStream.video, nextStream.audio, null, null, nextStream.clearKeys);
         } else {
             window.resumeClapprLoad(nextStream.video, nextStream.audio, nextStream.keyId, nextStream.keyValue);
         }
@@ -1087,13 +1115,14 @@ window.playPreviousStream = function(currentVideoSrc) {
         initializeStreamLinks(currentVideoSrc);
     }
     if (window.streamLinks.length === 0) return;
+    
     var previousIndex = (window.currentStreamIndex - 1 + window.streamLinks.length) % window.streamLinks.length;
     var previousStream = window.streamLinks[previousIndex];
     if (previousStream) {
         window.currentStreamIndex = previousIndex;
-        var ck = extractZapprClearkeyData(previousStream.video);
-        if (ck) {
-            window.resumeClapprLoad(ck.video, previousStream.audio, null, null, ck.keys);
+        // Fixed to read the pre-saved keys instantly
+        if (previousStream.isClearKey && previousStream.clearKeys) {
+            window.resumeClapprLoad(previousStream.video, previousStream.audio, null, null, previousStream.clearKeys);
         } else {
             window.resumeClapprLoad(previousStream.video, previousStream.audio, previousStream.keyId, previousStream.keyValue);
         }
@@ -1183,8 +1212,8 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     try {
-        (adsbygoogle = window.adsbygoogle || []).push({});
-    } catch (e) {
-        console.warn('AdSense not loaded yet.');
-    }
+    (window.adsbygoogle = window.adsbygoogle || []).push({});
+} catch (e) {
+    console.warn('AdSense not loaded yet.');
+}
 }
