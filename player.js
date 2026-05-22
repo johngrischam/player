@@ -1207,7 +1207,7 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
         + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Offerta speciale</div>'
         + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
         + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
-        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Abbonati a Premium<br>e guarda tutto senza limiti.</div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Abbonati a Premium.</div>'
         + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
         + '</div>';
     box.appendChild(promoBanner);
