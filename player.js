@@ -940,100 +940,78 @@ for(var i=0;i<allBtns.length;i++){
         if (switchBtn) switchBtn.textContent = 'Opzione 2'; // reflect UI state
 
         // --- START OF NEW SMART DETECTOR ---
-        var rawVideoSrc = this.getAttribute('data-video') || this.href;
-        var clearkeyData = extractZapprClearkeyData(rawVideoSrc);
+var rawVideoSrc = this.getAttribute('data-video') || this.href;
+var clearkeyData = extractZapprClearkeyData(rawVideoSrc);
+var videoSrc, audioSrc, keyId, keyValue, clearKeys;
 
-        var videoSrc, audioSrc, keyId, keyValue;
-
-        if (clearkeyData) {
-            videoSrc = clearkeyData.video;
-            keyValue = clearkeyData.keys; 
-            keyId = null;
-            audioSrc = null;
-        } else {
-            audioSrc = this.getAttribute('data-audio') || null;
-            videoSrc = rawVideoSrc;
-            keyId = this.getAttribute('data-key-id');
-            keyValue = this.getAttribute('data-key-value');
-        }
-        // --- END OF NEW SMART DETECTOR ---
+if (clearkeyData) {
+    videoSrc = clearkeyData.video;
+    clearKeys = clearkeyData.keys; // Pass it explicitly into the clearKeys variable
+    keyId = null;
+    keyValue = null;
+    audioSrc = null;
+} else {
+    audioSrc = this.getAttribute('data-audio') || null;
+    videoSrc = rawVideoSrc;
+    keyId = this.getAttribute('data-key-id');
+    keyValue = this.getAttribute('data-key-value');
+    clearKeys = null;
+}
+// --- END OF NEW SMART DETECTOR ---
         
         if (!videoSrc) {
-            console.error('No video source found for link');
-            var nextStream = getNextStreamLink(null);
-            if (nextStream) {
-                window.resumeClapprLoad(nextStream.video, nextStream.audio);
-                return;
-            }
+        console.error('No video source found for link');
+        var nextStream = getNextStreamLink(null);
+        if (nextStream) {
+            window.resumeClapprLoad(nextStream.video, nextStream.audio);
             return;
         }
+        return;
+    }
         
-        if(this.classList.contains('iframe-link')){
-            var audio = document.getElementById('audio-player');
-            audio.style.display='none';
-            var iframe = document.createElement('iframe');
-            iframe.src = videoSrc;
-            iframe.style.width = '100%';
-            iframe.style.border = 'none';
-            iframe.setAttribute('allowfullscreen','');
-            if (isTV()) {
-                iframe.style.height = '480px';
-                iframe.style.transform = 'scale(1.5)';
-                iframe.style.transformOrigin = 'top left';
-            } else {
-                iframe.style.height = window.innerWidth <= 768 ? '600px':'800px';
-            }
-            
-            playerContainer.style.position='relative';
-            playerContainer.appendChild(iframe);
-            return;
-        }
-
-        var isM3U8 = videoSrc.indexOf('.m3u8') > -1;
-        var isMPD = videoSrc.indexOf('.mpd') > -1;
-        var isWebpage = !isM3U8 && !isMPD && !audioSrc && !clearkeyData;
-        if(isWebpage){
-            var audio = document.getElementById('audio-player');
-            audio.style.display='none';
-            var iframe = document.createElement('iframe');
-            iframe.src = videoSrc;
-            iframe.style.width = '100%';
-            iframe.style.border = 'none';
-            iframe.setAttribute('allowfullscreen','');
-            if (isTV()) {
-                iframe.style.height = '480px';
-                iframe.style.transform = 'scale(1.5)';
-                iframe.style.transformOrigin = 'top left';
-            } else {
-                iframe.style.height = window.innerWidth <= 768 ? '600px':'800px';
-            }
-            
-            playerContainer.style.position='relative';
-            playerContainer.appendChild(iframe);
-            return;
-        }
-        
-        if (isMPD && keyId && this.classList.contains('stream-link')) {
-            window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
-            return;
-        }
-
-        var ua = navigator.userAgent.toLowerCase();
-        var isMobile = /android|iphone|ipad|ipod/.test(ua);
-        if (isMobile || isTV()) { 
-            if (clearkeyData) {
-                showPlayChoicePopup(videoSrc, audioSrc, null, null, keyValue);
-            } else {
-                showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue);
-            }
+    if(this.classList.contains('iframe-link')){
+        var audio = document.getElementById('audio-player');
+        audio.style.display='none';
+        var iframe = document.createElement('iframe');
+        iframe.src = videoSrc;
+        iframe.style.width = '100%';
+        iframe.style.border = 'none';
+        iframe.setAttribute('allowfullscreen','');
+        if (isTV()) {
+            iframe.style.height = '480px';
+            iframe.style.transform = 'scale(1.5)';
+            iframe.style.transformOrigin = 'top left';
         } else {
-            if (clearkeyData) {
-                window.resumeClapprLoad(videoSrc, audioSrc, null, null, keyValue);
-            } else {
-                window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue);
-            }
+            iframe.style.height = window.innerWidth <= 768 ? '600px':'800px';
         }
-    });
+            
+        playerContainer.style.position='relative';
+        playerContainer.appendChild(iframe);
+        return;
+    }
+        
+    // Standard execution block handling both old 4-key variables and the new clearKeys variable
+    if (isMPD && (keyId || clearKeys) && this.classList.contains('stream-link')) {
+        window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, clearKeys);
+        return;
+    }
+
+    var ua = navigator.userAgent.toLowerCase();
+    var isMobile = /android|iphone|ipad|ipod/.test(ua);
+    if (isMobile || isTV()) { 
+        if (clearKeys) {
+            showPlayChoicePopup(videoSrc, audioSrc, null, null, clearKeys);
+        } else {
+            showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, null);
+        }
+    } else {
+        if (clearKeys) {
+            window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
+        } else {
+            window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
+        }
+    }
+});
 }
 
 // ================================
