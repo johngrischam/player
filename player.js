@@ -151,6 +151,7 @@ function hideSpinner() {
 // Player Cleanup Function
 // ================================
 function cleanupPlayerInstances() {
+    fallbackAttempts = {};
     var playerContainer = document.getElementById('player');
     var alternateVideo = document.getElementById('alternate-video-player');
     if (window.clapprPlayer) {
@@ -275,7 +276,7 @@ if (preloader && counter) {
 
 window.addEventListener('load', function() {
   if (window.shaka) {
-        shaka.polyfill.installAll();
+        window.shaka.polyfill.installAll();
     }
   if (preloader) {
     preloader.style.transition = 'opacity 0.5s ease-out';
@@ -420,26 +421,22 @@ function showFullscreenPopup(container){
     spacer.style.cssText = 'height:25px;';
     box.appendChild(spacer);
 
-    var adLabel = document.createElement('div');
-    adLabel.textContent = 'advertising';
-    adLabel.style.cssText = 'font-size:11px;color:#666;margin-bottom:4px;';
-    box.appendChild(adLabel);
-
-    var adContainer = document.createElement('ins');
-    adContainer.className = 'adsbygoogle';
-    adContainer.style.display = 'block';
-    adContainer.style.width = '300px';
-    adContainer.style.height = '250px';
-    adContainer.style.margin = '0 auto';
-    adContainer.setAttribute('data-ad-client', 'ca-pub-2373589608434861');
-    adContainer.setAttribute('data-ad-slot', '8696086432');
-    adContainer.setAttribute('data-full-width-responsive', 'false');
-    box.appendChild(adContainer);
+    var promoBanner = document.createElement('a');
+    promoBanner.href = 'https://www.kritere.com/p/iptv.html';
+    promoBanner.target = '_blank';
+    promoBanner.rel = 'noopener noreferrer';
+    promoBanner.style.cssText = 'display:block;width:300px;height:250px;margin:10px auto 0;border-radius:10px;background:#ffffff;border:1.5px solid #e0e0e0;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;';
+    promoBanner.innerHTML = ''
+        + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
+        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px;">Offerta speciale</div>'
+        + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:14px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:20px;">Abbonati a Premium.</div>'
+        + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
+        + '</div>';
+    box.appendChild(promoBanner);
     overlay.appendChild(box);
     document.body.appendChild(overlay);
-
-    try { (window.adsbygoogle = window.adsbygoogle || []).push({});
-} catch(e) {}
 
     var escapeHandler = function(e) {
         if (e.key === 'Escape') {
@@ -498,6 +495,7 @@ function showFullscreenPopup(container){
 // Fullscreen Exit Handler
 // ================================
 function exitFullscreenAndStop() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(function(){});
     var playerContainer = document.getElementById('player');
     
     playerContainer.removeAttribute('style');
@@ -560,8 +558,13 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
         video.style.cssText = 'width:100%;height:100%;';
         playerContainer.appendChild(video);
 
-        shaka.polyfill.installAll();
-        window.shakaPlayer = new shaka.Player(video);
+        if (!window.shaka) {
+            hideSpinner();
+            console.error('Shaka library missing. Cannot play ClearKey stream.');
+            return;
+        }
+        window.shaka.polyfill.installAll();
+        window.shakaPlayer = new window.shaka.Player(video);
         window.shakaPlayer.configure({
             drm: { clearKeys: effectiveClearKeys },
             streaming: {
@@ -617,7 +620,7 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
             return;
         }
         
-        window.shakaPlayer = new shaka.Player(video);
+        window.shakaPlayer = new window.shaka.Player(video);
         window.shakaPlayer.configure({
             streaming: {
                 rebufferingGoal: 1.5,
@@ -987,7 +990,7 @@ if (clearkeyData) {
         
     if(this.classList.contains('iframe-link')){
         var audio = document.getElementById('audio-player');
-        audio.style.display='none';
+        if(audio) audio.style.display='none';
         var iframe = document.createElement('iframe');
         iframe.src = videoSrc;
         iframe.style.width = '100%';
@@ -1194,26 +1197,25 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     }
 
     box.appendChild(btnRow);
-    var adLabel = document.createElement('div');
-    adLabel.textContent = 'advertising';
-    adLabel.style.cssText = 'font-size:11px;color:#666;margin-bottom:4px;';
-    box.appendChild(adLabel);
-    var adContainer = document.createElement('ins');
-    adContainer.className = 'adsbygoogle';
-    adContainer.style.display = 'block';
-    adContainer.style.width = '300px';
-    adContainer.style.height = '250px';
-    adContainer.style.margin = '0 auto';
-    adContainer.setAttribute('data-ad-client', 'ca-pub-2373589608434861');
-    adContainer.setAttribute('data-ad-slot', '8696086432');
-    adContainer.setAttribute('data-full-width-responsive', 'false');
-    box.appendChild(adContainer);
+    var promoBanner = document.createElement('a');
+    promoBanner.href = 'https://www.kritere.com/p/iptv.html';
+    promoBanner.target = '_blank';
+    promoBanner.rel = 'noopener noreferrer';
+    promoBanner.style.cssText = 'display:block;width:300px;height:250px;margin:10px auto 0;border-radius:10px;background:#ffffff;border:1.5px solid #e0e0e0;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;';
+    promoBanner.innerHTML = ''
+        + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
+        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px;">Offerta speciale</div>'
+        + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:14px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:20px;">Abbonati a Premium<br>e guarda tutto senza limiti.</div>'
+        + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
+        + '</div>';
+    box.appendChild(promoBanner);
 
     overlay.appendChild(box);
     document.body.appendChild(overlay);
-    try {
-    (window.adsbygoogle = window.adsbygoogle || []).push({});
-} catch (e) {
-    console.warn('AdSense not loaded yet.');
 }
-}
+
+
+
+
