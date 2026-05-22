@@ -428,10 +428,10 @@ function showFullscreenPopup(container){
     promoBanner.style.cssText = 'display:block;width:300px;height:250px;margin:10px auto 0;border-radius:10px;background:#ffffff;border:1.5px solid #e0e0e0;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;';
     promoBanner.innerHTML = ''
         + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
-        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px;">Offerta speciale</div>'
+        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Offerta speciale</div>'
         + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
-        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:14px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
-        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:20px;">Abbonati a Premium.</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Abbonati a Premium.</div>'
         + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
         + '</div>';
     box.appendChild(promoBanner);
@@ -1204,10 +1204,10 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     promoBanner.style.cssText = 'display:block;width:300px;height:250px;margin:10px auto 0;border-radius:10px;background:#ffffff;border:1.5px solid #e0e0e0;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;';
     promoBanner.innerHTML = ''
         + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
-        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px;">Offerta speciale</div>'
+        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Offerta speciale</div>'
         + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
-        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:14px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
-        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:20px;">Abbonati a Premium<br>e guarda tutto senza limiti.</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Abbonati a Premium<br>e guarda tutto senza limiti.</div>'
         + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
         + '</div>';
     box.appendChild(promoBanner);
