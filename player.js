@@ -98,6 +98,32 @@ function extractCkParam(rawUrl) {
     }
 }
 
+function extractCkParamMulti(rawUrl) {
+    try {
+        if (!rawUrl || !rawUrl.includes('.mpd')) return null;
+        var urlObj = new URL(rawUrl.replace(/&amp;/g, '&'));
+        var ck = urlObj.searchParams.get('ck');
+        if (!ck) return null;
+        var decoded = atob(ck.replace(/ /g, '+'));
+        // Only handle if it contains a comma — multi-key format
+        if (!decoded.includes(',')) return null;
+        var clearKeys = {};
+        decoded.split(',').forEach(function(pair) {
+            var sep = pair.indexOf(':');
+            if (sep <= 0) return;
+            var kid = pair.slice(0, sep).trim();
+            var key = pair.slice(sep + 1).trim();
+            if (kid && key) clearKeys[kid] = key;
+        });
+        if (Object.keys(clearKeys).length === 0) return null;
+        var keys = Object.keys(clearKeys);
+        return { keyId: keys[0], keyValue: clearKeys[keys[0]], allKeys: clearKeys };
+    } catch(e) {
+        console.error('Failed to decode multi-key ?ck= param:', e);
+        return null;
+    }
+}
+
 function forceReleaseDRM() {
     try {
         var altVid = document.getElementById('alternate-video-player');
@@ -975,7 +1001,8 @@ for(var i=0;i<allBtns.length;i++){
         // --- START OF NEW SMART DETECTOR ---
 var rawVideoSrc = this.getAttribute('data-video') || this.href;
 var clearkeyData = extractZapprClearkeyData(rawVideoSrc);
-var ckData = extractCkParam(rawVideoSrc);        
+var ckDataMulti = extractCkParamMulti(rawVideoSrc);  // ← ADD, check multi first
+var ckData = ckDataMulti || extractCkParam(rawVideoSrc);       
 var videoSrc, audioSrc, keyId, keyValue, clearKeys;
 
 if (clearkeyData) {
@@ -988,7 +1015,7 @@ if (clearkeyData) {
     videoSrc = rawVideoSrc;
     keyId = ckData.keyId;
     keyValue = ckData.keyValue;
-    clearKeys = { [ckData.keyId]: ckData.keyValue };
+    clearKeys = ckData.allKeys || { [ckData.keyId]: ckData.keyValue };
     audioSrc = this.getAttribute('data-audio') || null;
     } else {
     audioSrc = this.getAttribute('data-audio') || null;
