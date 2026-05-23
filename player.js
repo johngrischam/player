@@ -88,25 +88,10 @@ function extractCkParam(rawUrl) {
         var urlObj = new URL(rawUrl.replace(/&amp;/g, '&'));
         var ck = urlObj.searchParams.get('ck');
         if (!ck) return null;
-        
-        // Normalize base64 (spaces → +)
-        var normalizedCk = ck.replace(/ /g, '+');
-        var decoded = atob(normalizedCk);
-        
-        var clearKeys = {};
-        decoded.split(',').forEach(function(pair) {
-            var separatorIndex = pair.indexOf(':');
-            if (separatorIndex <= 0) return;
-            var kid = pair.slice(0, separatorIndex).trim();
-            var key = pair.slice(separatorIndex + 1).trim();
-            if (kid && key) clearKeys[kid] = key;
-        });
-        
-        if (Object.keys(clearKeys).length === 0) return null;
-        
-        // Return in same shape your code expects
-        var keys = Object.keys(clearKeys);
-        return { keyId: keys[0], keyValue: clearKeys[keys[0]], allKeys: clearKeys };
+        var decoded = atob(ck);
+        var parts = decoded.split(':');
+        if (parts.length !== 2) return null;
+        return { keyId: parts[0], keyValue: parts[1] };
     } catch(e) {
         console.error('Failed to decode ?ck= DRM param:', e);
         return null;
@@ -1003,7 +988,7 @@ if (clearkeyData) {
     videoSrc = rawVideoSrc;
     keyId = ckData.keyId;
     keyValue = ckData.keyValue;
-    clearKeys = ckData.allKeys;
+    clearKeys = { [ckData.keyId]: ckData.keyValue };
     audioSrc = this.getAttribute('data-audio') || null;
     } else {
     audioSrc = this.getAttribute('data-audio') || null;
