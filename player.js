@@ -956,8 +956,33 @@ for(var i=0;i<allBtns.length;i++){
         var switchBtn = document.getElementById('switch-player-btn');
         if (switchBtn) switchBtn.textContent = 'Opzione 2'; // reflect UI state
 
+        var rawVideoSrc = this.getAttribute('data-video') || this.href;
+        var rawAudioSrc = this.getAttribute('data-audio') || null;
+        var rawIsM3U8 = rawVideoSrc.indexOf('.m3u8') > -1;
+        var rawIsMPD = rawVideoSrc.indexOf('.mpd') > -1;
+        var rawClearKey = extractZapprClearkeyData(rawVideoSrc);
+        var isWebpage = !rawIsM3U8 && !rawIsMPD && !rawAudioSrc && !rawClearKey;
+        if (isWebpage) {
+            var audio = document.getElementById('audio-player');
+            if(audio) audio.style.display='none';
+            var iframe = document.createElement('iframe');
+            iframe.src = rawVideoSrc;
+            iframe.style.width = '100%';
+            iframe.style.border = 'none';
+            iframe.setAttribute('allowfullscreen','');
+            if (isTV()) {
+                iframe.style.height = '480px';
+                iframe.style.transform = 'scale(1.5)';
+                iframe.style.transformOrigin = 'top left';
+            } else {
+                iframe.style.height = window.innerWidth <= 768 ? '600px':'800px';
+            }
+            playerContainer.style.position='relative';
+            playerContainer.appendChild(iframe);
+            return;
+        }
+
         // --- START OF NEW SMART DETECTOR ---
-var rawVideoSrc = this.getAttribute('data-video') || this.href;
 var clearkeyData = extractZapprClearkeyData(rawVideoSrc);      
 var videoSrc, audioSrc, keyId, keyValue, clearKeys;
 
