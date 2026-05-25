@@ -1040,34 +1040,22 @@ if (clearkeyData) {
         return;
     }
 
-    // --- STRICT APP DETECTION FOR KRITEREAPP (Bypasses popup entirely) ---
-        if (navigator.userAgent.includes("kritereapp")) {
-            if (clearKeys) {
-                window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
-            } else {
-                window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
-            }
-        } 
-        // --- EVERYONE ELSE (Mobile standard browsers/PWAs/TV/Desktop) ---
-        else {
-            var ua = navigator.userAgent.toLowerCase();
-            var isMobile = /android|iphone|ipad|ipod/.test(ua);
-            
-            if (isMobile || isTV()) { 
-                if (clearKeys) {
-                    showPlayChoicePopup(videoSrc, audioSrc, null, null, clearKeys);
-                } else {
-                    showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, null);
-                }
-            } else {
-                if (clearKeys) {
-                    window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
-                } else {
-                    window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
-                }
-            }
+    var ua = navigator.userAgent.toLowerCase();
+    var isMobile = /android|iphone|ipad|ipod/.test(ua);
+    if (isMobile || isTV()) { 
+        if (clearKeys) {
+            showPlayChoicePopup(videoSrc, audioSrc, null, null, clearKeys);
+        } else {
+            showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, null);
         }
-    });
+    } else {
+        if (clearKeys) {
+            window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
+        } else {
+            window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
+        }
+    }
+});
 }
 
 // ================================
@@ -1173,7 +1161,7 @@ window.playPreviousStream = function(currentVideoSrc) {
 // NEW: Popup for choosing Web/Native on Mobile (Blogger-safe Ad)
 // ================================
 function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
-    var ua = navigator.userAgent.toLowerCase()
+    var ua = navigator.userAgent.toLowerCase();
     var isAndroid = /android/.test(ua);
     var isIOS = /iphone|ipad|ipod/.test(ua);
 
@@ -1252,5 +1240,7 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 }
+
+
 
 
