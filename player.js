@@ -1192,47 +1192,16 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     };
     btnRow.appendChild(webBtn);
     if (isAndroid) {
-    var nativeBtn = document.createElement('button');
-    nativeBtn.textContent = 'Native Player';
-    nativeBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#28a745;color:white;font-size:14px;cursor:pointer;';
-    nativeBtn.onclick = function() {
-        document.body.removeChild(overlay);
-
-        var finalKeyId = null;
-        var finalKeyValue = null;
-
-        if (clearKeys && typeof clearKeys === 'object') {
-            var kidList = Object.keys(clearKeys);
-            if (kidList.length > 0) {
-                finalKeyId    = kidList[0];
-                finalKeyValue = clearKeys[finalKeyId];
-            }
-        } else if (keyId && keyValue) {
-            finalKeyId    = keyId;
-            finalKeyValue = keyValue;
-        }
-
-        if (window.JsStreamDetector && typeof window.JsStreamDetector.detectStream === 'function') {
-            if (finalKeyId && finalKeyValue) {
-                window.JsStreamDetector.detectStream(
-                    String(videoSrc),
-                    audioSrc ? String(audioSrc) : "",
-                    String(finalKeyId),
-                    String(finalKeyValue)
-                );
-            } else {
-                window.JsStreamDetector.detectStream(
-                    String(videoSrc),
-                    audioSrc ? String(audioSrc) : ""
-                );
-            }
-        } else {
-            var stripped = videoSrc.replace(/^https?:\/\//, '');
+        var nativeBtn = document.createElement('button');
+        nativeBtn.textContent = 'Native Player';
+        nativeBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#28a745;color:white;font-size:14px;cursor:pointer;';
+        nativeBtn.onclick = function() {
+            document.body.removeChild(overlay);
+            var stripped = videoSrc.replace(/^https?:\/\//,'');
             window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
-        }
-    };
-    btnRow.appendChild(nativeBtn);
-} else if (isIOS) {
+        };
+        btnRow.appendChild(nativeBtn);
+    } else if (isIOS) {
         var vlcBtn = document.createElement('button');
         vlcBtn.textContent = 'VLC';
         vlcBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#000;color:white;font-size:14px;cursor:pointer;';
@@ -1271,7 +1240,5 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     overlay.appendChild(box);
     document.body.appendChild(overlay);
 }
-
-
 
 
