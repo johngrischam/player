@@ -1196,10 +1196,14 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
         nativeBtn.textContent = 'Native Player';
         nativeBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#28a745;color:white;font-size:14px;cursor:pointer;';
         nativeBtn.onclick = function() {
-            document.body.removeChild(overlay);
-            var stripped = videoSrc.replace(/^https?:\/\//,'');
-            window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
-        };
+    document.body.removeChild(overlay);
+    if (window.JsStreamDetector && typeof window.JsStreamDetector.detectStream === 'function') {
+        window.JsStreamDetector.detectStream(videoSrc, audioSrc || null, keyId || null, keyValue || null);
+    } else {
+        var stripped = videoSrc.replace(/^https?:\/\//,'');
+        window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
+    }
+};
         btnRow.appendChild(nativeBtn);
     } else if (isIOS) {
         var vlcBtn = document.createElement('button');
