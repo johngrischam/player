@@ -1192,52 +1192,47 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     };
     btnRow.appendChild(webBtn);
     if (isAndroid) {
-        var nativeBtn = document.createElement('button');
-        nativeBtn.textContent = 'Native Player';
-        nativeBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#28a745;color:white;font-size:14px;cursor:pointer;';
-        nativeBtn.onclick = function() {
-    document.body.removeChild(overlay);
-    
-    // Check if this is a wrapped ClearKey URL structure
-    var clearKeyData = typeof extractZapprClearkeyData === 'function' ? extractZapprClearkeyData(videoSrc) : null;
-    
-    var finalVideoSrc = videoSrc;
-    var finalKeyId = keyId || null;
-    var finalKeyValue = keyValue || null;
-    
-    if (clearKeyData) {
-        finalVideoSrc = clearKeyData.video;
-        // Extract the first structural keypair directly out of the dictionary object
-        if (clearKeyData.keys) {
-            var structuralKeys = Object.keys(clearKeyData.keys);
-            if (structuralKeys.length > 0) {
-                finalKeyId = structuralKeys[0];
-                finalKeyValue = clearKeyData.keys[finalKeyId];
+    var nativeBtn = document.createElement('button');
+    nativeBtn.textContent = 'Native Player';
+    nativeBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#28a745;color:white;font-size:14px;cursor:pointer;';
+    nativeBtn.onclick = function() {
+        document.body.removeChild(overlay);
+
+        var finalKeyId = null;
+        var finalKeyValue = null;
+
+        if (clearKeys && typeof clearKeys === 'object') {
+            var kidList = Object.keys(clearKeys);
+            if (kidList.length > 0) {
+                finalKeyId    = kidList[0];
+                finalKeyValue = clearKeys[finalKeyId];
             }
+        } else if (keyId && keyValue) {
+            finalKeyId    = keyId;
+            finalKeyValue = keyValue;
         }
-    }
 
-    if (window.JsStreamDetector) {
-        // Safe conversions to ensure strict String mappings for Android JavascriptInterface
-        var sUrl = finalVideoSrc ? String(finalVideoSrc) : "";
-        var aUrl = audioSrc ? String(audioSrc) : "";
-        var kId = finalKeyId ? String(finalKeyId) : "";
-        var kVal = finalKeyValue ? String(finalKeyValue) : "";
-
-        if (kId !== "" && kVal !== "" && typeof window.JsStreamDetector.detectStream === 'function') {
-            // Force calling the 4-argument DRM signature explicitly
-            window.JsStreamDetector.detectStream(sUrl, aUrl, kId, kVal);
-        } else if (typeof window.JsStreamDetector.detectStream === 'function') {
-            // Fall back cleanly to the 2-argument variant if keys are completely missing
-            window.JsStreamDetector.detectStream(sUrl, aUrl);
+        if (window.JsStreamDetector && typeof window.JsStreamDetector.detectStream === 'function') {
+            if (finalKeyId && finalKeyValue) {
+                window.JsStreamDetector.detectStream(
+                    String(videoSrc),
+                    audioSrc ? String(audioSrc) : "",
+                    String(finalKeyId),
+                    String(finalKeyValue)
+                );
+            } else {
+                window.JsStreamDetector.detectStream(
+                    String(videoSrc),
+                    audioSrc ? String(audioSrc) : ""
+                );
+            }
+        } else {
+            var stripped = videoSrc.replace(/^https?:\/\//, '');
+            window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
         }
-    } else {
-        var stripped = finalVideoSrc.replace(/^https?:\/\//,'');
-        window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
-    }
-};
-        btnRow.appendChild(nativeBtn);
-    } else if (isIOS) {
+    };
+    btnRow.appendChild(nativeBtn);
+} else if (isIOS) {
         var vlcBtn = document.createElement('button');
         vlcBtn.textContent = 'VLC';
         vlcBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#000;color:white;font-size:14px;cursor:pointer;';
