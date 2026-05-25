@@ -1197,10 +1197,31 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
         nativeBtn.style.cssText = 'padding:10px 14px;border-radius:8px;border:none;background:#28a745;color:white;font-size:14px;cursor:pointer;';
         nativeBtn.onclick = function() {
     document.body.removeChild(overlay);
+    
+    // Check if this is a wrapped ClearKey URL structure
+    var clearKeyData = typeof extractZapprClearkeyData === 'function' ? extractZapprClearkeyData(videoSrc) : null;
+    
+    var finalVideoSrc = videoSrc;
+    var finalKeyId = keyId || null;
+    var finalKeyValue = keyValue || null;
+    
+    if (clearKeyData) {
+        finalVideoSrc = clearKeyData.video;
+        // Extract the first structural keypair directly out of the dictionary object
+        if (clearKeyData.keys) {
+            var structuralKeys = Object.keys(clearKeyData.keys);
+            if (structuralKeys.length > 0) {
+                finalKeyId = structuralKeys[0];
+                finalKeyValue = clearKeyData.keys[finalKeyId];
+            }
+        }
+    }
+
     if (window.JsStreamDetector && typeof window.JsStreamDetector.detectStream === 'function') {
-        window.JsStreamDetector.detectStream(videoSrc, audioSrc || null, keyId || null, keyValue || null);
+        // Send clean params directly to ExoPlayer
+        window.JsStreamDetector.detectStream(finalVideoSrc, audioSrc || null, finalKeyId, finalKeyValue);
     } else {
-        var stripped = videoSrc.replace(/^https?:\/\//,'');
+        var stripped = finalVideoSrc.replace(/^https?:\/\//,'');
         window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
     }
 };
