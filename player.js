@@ -1217,9 +1217,20 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
         }
     }
 
-    if (window.JsStreamDetector && typeof window.JsStreamDetector.detectStream === 'function') {
-        // Send clean params directly to ExoPlayer
-        window.JsStreamDetector.detectStream(finalVideoSrc, audioSrc || null, finalKeyId, finalKeyValue);
+    if (window.JsStreamDetector) {
+        // Safe conversions to ensure strict String mappings for Android JavascriptInterface
+        var sUrl = finalVideoSrc ? String(finalVideoSrc) : "";
+        var aUrl = audioSrc ? String(audioSrc) : "";
+        var kId = finalKeyId ? String(finalKeyId) : "";
+        var kVal = finalKeyValue ? String(finalKeyValue) : "";
+
+        if (kId !== "" && kVal !== "" && typeof window.JsStreamDetector.detectStream === 'function') {
+            // Force calling the 4-argument DRM signature explicitly
+            window.JsStreamDetector.detectStream(sUrl, aUrl, kId, kVal);
+        } else if (typeof window.JsStreamDetector.detectStream === 'function') {
+            // Fall back cleanly to the 2-argument variant if keys are completely missing
+            window.JsStreamDetector.detectStream(sUrl, aUrl);
+        }
     } else {
         var stripped = finalVideoSrc.replace(/^https?:\/\//,'');
         window.location.href = 'intent://' + stripped + '#Intent;scheme=https;type=video/*;end';
