@@ -1040,22 +1040,34 @@ if (clearkeyData) {
         return;
     }
 
-    var ua = navigator.userAgent.toLowerCase();
-    var isMobile = /android|iphone|ipad|ipod/.test(ua);
-    if (isMobile || isTV()) { 
-        if (clearKeys) {
-            showPlayChoicePopup(videoSrc, audioSrc, null, null, clearKeys);
-        } else {
-            showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, null);
+    // --- STRICT APP DETECTION FOR KRITEREAPP (Bypasses popup entirely) ---
+        if (navigator.userAgent.includes("kritereapp")) {
+            if (clearKeys) {
+                window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
+            } else {
+                window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
+            }
+        } 
+        // --- EVERYONE ELSE (Mobile standard browsers/PWAs/TV/Desktop) ---
+        else {
+            var ua = navigator.userAgent.toLowerCase();
+            var isMobile = /android|iphone|ipad|ipod/.test(ua);
+            
+            if (isMobile || isTV()) { 
+                if (clearKeys) {
+                    showPlayChoicePopup(videoSrc, audioSrc, null, null, clearKeys);
+                } else {
+                    showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, null);
+                }
+            } else {
+                if (clearKeys) {
+                    window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
+                } else {
+                    window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
+                }
+            }
         }
-    } else {
-        if (clearKeys) {
-            window.resumeClapprLoad(videoSrc, audioSrc, null, null, clearKeys);
-        } else {
-            window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, null);
-        }
-    }
-});
+    });
 }
 
 // ================================
@@ -1161,11 +1173,7 @@ window.playPreviousStream = function(currentVideoSrc) {
 // NEW: Popup for choosing Web/Native on Mobile (Blogger-safe Ad)
 // ================================
 function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
-    var ua = navigator.userAgent.toLowerCase();
-    if (navigator.userAgent.includes("kritereapp")) {
-        window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, clearKeys);
-        return; // Stop right here so the popup is never created inside your app
-    }
+    var ua = navigator.userAgent.toLowerCase()
     var isAndroid = /android/.test(ua);
     var isIOS = /iphone|ipad|ipod/.test(ua);
 
