@@ -1162,6 +1162,10 @@ window.playPreviousStream = function(currentVideoSrc) {
 // ================================
 function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
     var ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("kritereapp")) {
+        window.resumeClapprLoad(videoSrc, audioSrc, keyId, keyValue, clearKeys);
+        return; // Stop right here so the popup is never created in kritereapp
+    }
     var isAndroid = /android/.test(ua);
     var isIOS = /iphone|ipad|ipod/.test(ua);
 
