@@ -82,6 +82,11 @@ function extractZapprClearkeyData(rawUrl) {
     }
 }
 
+function isXtreamCodesUrl(url) {
+    return /https?:\/\/[^\/]+:\d+\/[^\/]+\/[^\/]+\/\d+$/.test(url)
+        || url.indexOf('.ts') > -1;
+}
+
 function forceReleaseDRM() {
     try {
         var altVid = document.getElementById('alternate-video-player');
@@ -178,6 +183,10 @@ function cleanupPlayerInstances() {
             console.warn('HLS cleanup failed:', e);
         }
         window.hlsPlayer = null;
+    }
+    if (window.mpegtsPlayer) {
+        try { window.mpegtsPlayer.destroy(); } catch(e) {}
+        window.mpegtsPlayer = null;
     }
     if (alternateVideo) {
         alternateVideo.pause();
@@ -750,12 +759,50 @@ function loadAlternatePlayer(videoSrc, audioSrc, keyId, keyValue, clearKeys){
         };
         document.addEventListener('visibilitychange', window.visibilityHandler);
     }
-    // Save volume even when there is no external audio track
+// Save volume even when there is no external audio track
 if (!audioSrc) {
     video.addEventListener('volumechange', function() {
         saveVolume(video.volume, video.muted);
     });
 }
+}
+
+// ================================
+// MPEG-TS Player (for Xtream Codes / .ts streams)
+// ================================
+function loadMpegTsPlayer(videoSrc) {
+    var playerContainer = document.getElementById('player');
+    showSpinner(playerContainer);
+    if (typeof mpegts === 'undefined' || !mpegts.isSupported()) {
+        hideSpinner();
+        return;
+    }
+    cleanupPlayerInstances();
+    var video = document.createElement('video');
+    video.id = 'alternate-video-player';
+    video.autoplay = true;
+    video.muted = true;
+    video.controls = true;
+    video.style.cssText = 'width:100%;height:100%;';
+    playerContainer.appendChild(video);
+    window.mpegtsPlayer = mpegts.createPlayer(
+        { type: 'mse', isLive: true, url: videoSrc, hasAudio: true, hasVideo: true },
+        { enableWorker: true, liveBufferLatencyChasing: true, liveBufferLatencyMaxLatency: 5.0, liveBufferLatencyMinRemain: 1.0, ioRetryCount: 3, ioRetryDelay: 500 }
+    );
+    window.mpegtsPlayer.attachMediaElement(video);
+    window.mpegtsPlayer.load();
+    window.mpegtsPlayer.play().catch(function(){});
+    video.addEventListener('play', function() {
+        hideSpinner();
+        showFullscreenPopup(playerContainer);
+        var saved = getSavedVolume();
+        video.muted = saved.muted;
+        video.volume = saved.volume;
+    }, { once: true });
+    window.mpegtsPlayer.on(mpegts.Events.ERROR, function(err) {
+        hideSpinner();
+        console.error('mpegts error:', err);
+    });
 }
 
 // ================================
@@ -1002,7 +1049,12 @@ if (clearkeyData) {
 // --- END OF NEW SMART DETECTOR ---
 
         var isMPD = videoSrc && videoSrc.indexOf('.mpd') > -1;
-        
+        var isTS = isXtreamCodesUrl(videoSrc);
+        if (isTS) {
+            loadMpegTsPlayer(videoSrc);
+            return;
+        }
+
         if (!videoSrc) {
         console.error('No video source found for link');
         var nextStream = getNextStreamLink(null);
