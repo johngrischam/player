@@ -1008,7 +1008,8 @@ for(var i=0;i<allBtns.length;i++){
         var rawIsM3U8 = rawVideoSrc.indexOf('.m3u8') > -1;
         var rawIsMPD = rawVideoSrc.indexOf('.mpd') > -1;
         var rawClearKey = extractZapprClearkeyData(rawVideoSrc);
-        var isWebpage = !rawIsM3U8 && !rawIsMPD && !rawAudioSrc && !rawClearKey;
+        var rawIsTS = isXtreamCodesUrl(rawVideoSrc);
+        var isWebpage = !rawIsM3U8 && !rawIsMPD && !rawAudioSrc && !rawClearKey && !rawIsTS;
         if (isWebpage) {
             var audio = document.getElementById('audio-player');
             if(audio) audio.style.display='none';
