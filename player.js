@@ -785,44 +785,13 @@ function loadMpegTsPlayer(videoSrc) {
     video.controls = true;
     video.style.cssText = 'width:100%;height:100%;';
     playerContainer.appendChild(video);
-
-    function createMpegtsPlayer() {
-        if (window.mpegtsPlayer) {
-            try { window.mpegtsPlayer.destroy(); } catch(e) {}
-            window.mpegtsPlayer = null;
-        }
-        window.mpegtsPlayer = mpegts.createPlayer(
-            { type: 'mse', isLive: true, url: videoSrc, hasAudio: true, hasVideo: true },
-            { enableWorker: true, liveBufferLatencyChasing: true, liveBufferLatencyMaxLatency: 5.0, liveBufferLatencyMinRemain: 1.0, ioRetryCount: 10, ioRetryDelay: 1000 }
-        );
-        window.mpegtsPlayer.attachMediaElement(video);
-        window.mpegtsPlayer.load();
-        window.mpegtsPlayer.play().catch(function(){});
-
-        window.mpegtsPlayer.on(mpegts.Events.ERROR, function(err) {
-            console.warn('mpegts error, reconnecting in 2s...', err);
-            setTimeout(function() {
-                if (document.getElementById('alternate-video-player')) {
-                    showSpinner(playerContainer);
-                    createMpegtsPlayer();
-                }
-            }, 2000);
-        });
-    }
-
-    // Use native video 'waiting' event — fires only when browser detects stall, zero polling
-    video.addEventListener('waiting', function() {
-        setTimeout(function() {
-            if (video.paused || video.readyState < 3) {
-                console.warn('Stream stalled, reconnecting...');
-                showSpinner(playerContainer);
-                createMpegtsPlayer();
-            }
-        }, 8000); // wait 8s before deciding it's truly stuck
-    });
-
-    createMpegtsPlayer();
-
+    window.mpegtsPlayer = mpegts.createPlayer(
+        { type: 'mse', isLive: true, url: videoSrc, hasAudio: true, hasVideo: true },
+        { enableWorker: true, liveBufferLatencyChasing: true, liveBufferLatencyMaxLatency: 5.0, liveBufferLatencyMinRemain: 1.0, ioRetryCount: 3, ioRetryDelay: 500 }
+    );
+    window.mpegtsPlayer.attachMediaElement(video);
+    window.mpegtsPlayer.load();
+    window.mpegtsPlayer.play().catch(function(){});
     video.addEventListener('play', function() {
         hideSpinner();
         showFullscreenPopup(playerContainer);
@@ -830,6 +799,10 @@ function loadMpegTsPlayer(videoSrc) {
         video.muted = saved.muted;
         video.volume = saved.volume;
     }, { once: true });
+    window.mpegtsPlayer.on(mpegts.Events.ERROR, function(err) {
+        hideSpinner();
+        console.error('mpegts error:', err);
+    });
 }
 
 // ================================
