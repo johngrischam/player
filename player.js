@@ -787,7 +787,18 @@ function loadMpegTsPlayer(videoSrc) {
     playerContainer.appendChild(video);
     window.mpegtsPlayer = mpegts.createPlayer(
         { type: 'mse', isLive: true, url: videoSrc, hasAudio: true, hasVideo: true },
-        { enableWorker: true, liveBufferLatencyChasing: true, liveBufferLatencyMaxLatency: 5.0, liveBufferLatencyMinRemain: 1.0, ioRetryCount: 3, ioRetryDelay: 500 }
+        { 
+    enableWorker: true, 
+    liveBufferLatencyChasing: false,
+    liveMaxLatencyDelay: 10,
+    liveSyncDuration: 5,
+    liveBufferLatencyMaxLatency: 8.0, 
+    liveBufferLatencyMinRemain: 3.0,
+    ioRetryCount: 5, 
+    ioRetryDelay: 1000,
+    stashInitialSize: 512,
+    enableStashBuffer: true
+    }
     );
     window.mpegtsPlayer.attachMediaElement(video);
     window.mpegtsPlayer.load();
