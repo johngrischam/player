@@ -431,16 +431,16 @@ function showFullscreenPopup(container){
     box.appendChild(spacer);
 
     var promoBanner = document.createElement('a');
-    promoBanner.href = 'https://www.kritere.com/p/iptv.html';
+    promoBanner.href = 'https://www.tvitalia.de';
     promoBanner.target = '_blank';
     promoBanner.rel = 'noopener noreferrer';
     promoBanner.style.cssText = 'display:block;width:300px;height:250px;margin:10px auto 0;border-radius:10px;background:#ffffff;border:1.5px solid #e0e0e0;text-decoration:none;box-shadow:0 2px 12px rgba(0,0,0,0.10);overflow:hidden;';
     promoBanner.innerHTML = ''
         + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
-        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Offerta speciale</div>'
+        + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">TVitalia.DE</div>'
         + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
-        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">500 canali TV<br>a soli <span style="color:#e00;font-size:24px;">5€</span></div>'
-        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Abbonati a Premium.</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">Sport<br>e <span style="color:#e00;font-size:24px;">CALCIO</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Film e Serie TV.</div>'
         + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
         + '</div>';
     box.appendChild(promoBanner);
