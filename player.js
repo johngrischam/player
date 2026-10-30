@@ -439,8 +439,8 @@ function showFullscreenPopup(container){
         + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
         + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">TVitalia.DE</div>'
         + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
-        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">Sport<br>e <span style="color:#e00;font-size:24px;">CALCIO</span></div>'
-        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Film e Serie TV.</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">Premium<br> <span style="color:#e00;font-size:24px;">GRATIS!</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Calcio, Film e Serie TV.</div>'
         + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
         + '</div>';
     box.appendChild(promoBanner);
@@ -1295,8 +1295,8 @@ function showPlayChoicePopup(videoSrc, audioSrc, keyId, keyValue, clearKeys) {
         + '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;">'
         + '<div style="font-size:13px;font-weight:600;color:#888;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">TVitalia.DE</div>'
         + '<div style="font-size:42px;margin-bottom:10px;">📺</div>'
-        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">Sport<br>e <span style="color:#e00;font-size:24px;">CALCIO</span></div>'
-        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Film e Serie TV.</div>'
+        + '<div style="font-size:19px;font-weight:700;color:#111;line-height:1.3;text-align:center;margin-bottom:10px;">Premium<br> <span style="color:#e00;font-size:24px;">GRATIS</span></div>'
+        + '<div style="font-size:13px;color:#444;text-align:center;margin-bottom:10px;">Calcio, Film e Serie TV.</div>'
         + '<div style="background:#111;color:#fff;font-size:13px;font-weight:600;padding:10px 28px;border-radius:25px;letter-spacing:0.04em;">Scopri di più →</div>'
         + '</div>';
     box.appendChild(promoBanner);
